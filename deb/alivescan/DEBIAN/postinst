@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Caminho para o arquivo executável
+BIN_PATH="/var/scripts_rd/rotinas/alivescan"
+
+# Define um limite de tempo para a espera (por exemplo, 30 segundos)
+TIMEOUT=30
+COUNTER=0
+
+# Aguarda até que o arquivo apareça no sistema de arquivos ou o timeout expire
+while [ ! -f "$BIN_PATH" ]; do
+  sleep 1
+  ((COUNTER++))
+  if [ "$COUNTER" -ge "$TIMEOUT" ]; then
+    echo "Erro: Timeout esperando pelo arquivo $BIN_PATH."
+    exit 1
+  fi
+done
+
+# Dá permissão de execução ao binário
+chmod 775 "$BIN_PATH"
+
+# Habilita o serviço e o timer
+systemctl enable alivescan.service
+systemctl enable alivescan.timer
+
+# Recarrega as configurações do systemd
+systemctl daemon-reload
+
+# Inicia o serviço
+systemctl start alivescan.service
+systemctl start alivescan.timer
