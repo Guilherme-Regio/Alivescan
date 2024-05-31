@@ -1,0 +1,9 @@
+Estrutura de Diretórios: Criar a estrutura de diretórios correta para o pacote .deb, incluindo um diretório DEBIAN para metadados e um diretório que representa o sistema de arquivos do alvo, onde você colocará o binário.
+
+Arquivo de Controle: Escrever um arquivo de controle (control) no diretório DEBIAN com as informações necessárias do pacote.
+
+Scripts de Pós-Instalação: Opcionalmente, adicionar scripts como postinst no diretório DEBIAN para quaisquer ações pós-instalação, como permissões de arquivo.
+
+Binário Compilado: Colocar o binário compilado no diretório correspondente em sua estrutura de pacote (var/scripts_rd/rotinas/).
+
+Construir o Pacote: Usar dpkg-deb --build para construir o pacote a partir da sua estrutura de diretórios.
