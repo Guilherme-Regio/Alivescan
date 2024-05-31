@@ -1,0 +1,10 @@
+setuptools_rust
+paramiko
+prettytable
+psutil
+pymysql
+cryptografy
+ntplib
+pytz
+scapy
+sqlite3worker
