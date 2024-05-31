@@ -1,0 +1,11 @@
+[Unit]
+Description=Timer para o alivescan.service
+
+[Timer]
+OnCalendar=00:00:00
+
+# Define quando o timer será ativado após o boot
+Persistent=true
+
+[Install]
+WantedBy=timers.target

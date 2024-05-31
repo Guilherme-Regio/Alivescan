@@ -1,0 +1,10 @@
+[Unit]
+Description=Inventário de device
+
+[Service]
+ExecStart=/var/scripts_rd/rotinas/alivescan 3
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target
