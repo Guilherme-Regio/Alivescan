@@ -1,19 +1,17 @@
-import socket
-from subprocess import Popen, PIPE
-from datetime import datetime, timezone
+from subprocess import Popen, PIPE, check_call, DEVNULL, CalledProcessError
+from socket import socket, AF_INET, SOCK_STREAM
 from paramiko import SSHClient, AutoAddPolicy
-import socket
-import psutil
-import subprocess
-import ntplib
-import pytz
-import requests
+from ntplib import NTPClient, NTPException
+from datetime import datetime, timezone
 from scapy.all import ARP, Ether, srp
 from asyncio import get_event_loop
+from psutil import net_if_addrs
+from pytz import timezone
+from requests import get
 
 
-user = 'user'
-pwd = 'pass'
+user = '' # USER SSH COMMANDS
+pwd = '' # PWD SSH COMMANDS
 
 class SSH:
 
@@ -22,8 +20,8 @@ class SSH:
         self.ssh.load_system_host_keys()
         self.ssh.set_missing_host_key_policy(AutoAddPolicy())
         self.ip = ip
-        self.user = 'user'
-        self.pwd = 'pass'
+        self.user = '' # USER SSH
+        self.pwd = ''# PASS SSH 
 
 
     def ssh_connection(self):  
@@ -59,11 +57,9 @@ class SSH:
 
 
 def cmd(cmd_input, wine=False):
-    # Prepara o comando para ser executado em uma shell com sudo, passando corretamente para `bash -c`
     cmd_new = f"echo {pwd} | sudo -S bash -c \"{cmd_input}\""
     cmd_wine = f"echo {pwd} | sudo -S -H -u pdv bash -c \"{cmd_input}\""
     try:
-        # Utilizar shell=True para permitir a execução de comandos complexos
         if wine == True:
             process = Popen(cmd_wine, stdout=PIPE, stderr=PIPE, shell=True, encoding="utf-8")
             stdout, stderr = process.communicate()
@@ -72,13 +68,10 @@ def cmd(cmd_input, wine=False):
             stdout, stderr = process.communicate()
             
         if process.returncode != 0:
-            print(f"Error: {stderr}")
-            print(f"Saida: {stdout}")
             return False
         else:
-            return stdout.strip()  # Remove espaços em branco no início e no fim
+            return stdout.strip() 
     except Exception as e:
-        print(f"Error Exeception: {e}")
         return False
     
 
@@ -100,7 +93,7 @@ def host_ttl(ip):
 
 def check_openport(host, porta):
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s = socket(AF_INET, SOCK_STREAM)
         s.settimeout(2)
         resultado = s.connect_ex((host, porta))
         s.close()
@@ -112,15 +105,14 @@ def check_openport(host, porta):
         else:
             return False
     except Exception as e:
-        print(f"Erro: {str(e)}")
         return False
           
 
 def ping(target_host):
     try:
-        subprocess.check_call(['ping', '-c', '1', '-W', '2', f'{target_host}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        check_call(['ping', '-c', '1', '-W', '2', f'{target_host}'], stdout=DEVNULL, stderr=DEVNULL)
         return True
-    except subprocess.CalledProcessError:
+    except CalledProcessError:
         return False
 
 
@@ -129,11 +121,11 @@ def clock_adjust():
     for ntp_server in ntp_servers:
         cmd = ['ntpdate', '-u', f'{ntp_server}']
         try:
-            subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
             return True
-        except subprocess.CalledProcessError as e:
+        except CalledProcessError as e:
             if ntp_server == ntp_servers[len(ntp_servers) - 1]:
-                return print(f' {e} - Erro ao ajustar a hora com os servidores NTP definidos')
+                return False
 
 
 def check_ping(target_host):
@@ -153,11 +145,11 @@ def get_timenow():
 
 
 def get_ipaddr():
-    interfaces = psutil.net_if_addrs()
+    interfaces = net_if_addrs()
 
     for interface, addrs in interfaces.items():
         for addr in addrs:
-            if addr.family == socket.AF_INET and not addr.address.startswith('127.'):
+            if addr.family == AF_INET and not addr.address.startswith('127.'):
                 ipaddr = addr.address
     
     return ipaddr
@@ -182,16 +174,16 @@ def get_cidr(ipaddr):
 
 def get_ntp_time():
     ntp_servers = ['ntp serves list']
-    client = ntplib.NTPClient()
+    client = NTPClient()
     for ntp_server in ntp_servers:
         try:
             response = client.request(ntp_server, version=3)
-            time_utc = datetime.fromtimestamp(response.tx_time, tz=timezone.utc)  # Correção: especificar 'timezone.utc' corretamente
-            timezone_obj = pytz.timezone('America/Sao_Paulo')
+            time_utc = datetime.fromtimestamp(response.tx_time, tz=timezone.utc)
+            timezone_obj = timezone('America/Sao_Paulo')
             time_zone = time_utc.astimezone(timezone_obj)
             # Formatar a data e a hora no formato desejado
             return time_zone.strftime('%Y-%m-%d %H:%M:%S')
-        except (ntplib.NTPException, OSError) as e:
+        except (NTPException, OSError) as e:
             if ntp_server == ntp_servers[len(ntp_servers) - 1]:
                 return print(f'{e} - Erro ao capturar a hora nos servidores NTP definidos')
     
@@ -207,7 +199,7 @@ def check_clock_diff():
 
 
 def get_textfromweb(url):
-    html = requests.get(url)
+    html = get(url)
     raw = html.content.decode('utf8')
     return str(raw).replace('\n', '')
 
@@ -218,16 +210,11 @@ def glpi_agent_check(ipagent):
     status = read_version = ''
 
     try:
-        #Captura o status do agente local
-        html_read = requests.get(url_agent, timeout=2)
+        html_read = get(url_agent, timeout=2)
         read_version = html_read.content.decode("utf-8")
-
     except:
         status = 'STOPPED'
-    
     else:
-
-        #Captura a versão do agente em produção
         try:
             latest_version = get_textfromweb('http://url/farm_version.html')
         except:
@@ -238,7 +225,6 @@ def glpi_agent_check(ipagent):
             status = 'COMPLIANCE'
         else:
             status = 'NO COMPLIANCE'
-
     return status
 
 
@@ -253,7 +239,6 @@ def check_terminal(ip_terminal, terminal):
         return "NA"
 
     
-
 def check_device(mac_address, ip, devices):
     mac_vendor = mac_address[:8]
     if mac_vendor in devices:
@@ -279,25 +264,18 @@ def check_SSHConnection(ip):
         
 
 def get_MACAddress(ip):
-    from scapy.all import ARP, Ether, srp
-    
-    # O endereço de broadcast MAC e o tipo de pacote ARP
     broadcast = "ff:ff:ff:ff:ff:ff"
     ether_layer = Ether(dst=broadcast)
     arp_layer = ARP(pdst=ip)
     
-    # Combine as camadas
     packet = ether_layer / arp_layer
     
-    # Envie o pacote e receba a resposta
-    result = srp(packet, timeout=5, verbose=False)  # Aumentei o timeout para 5 segundos
+    result = srp(packet, timeout=5, verbose=False) 
 
-    # Verifica se há respostas no resultado
     answers = result[0]
     if answers:
         for sent, received in answers:
-            return received.hwsrc  # Retorna o MAC do primeiro dispositivo que respondeu
-
+            return received.hwsrc
     return None 
 
 

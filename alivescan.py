@@ -1,4 +1,4 @@
-import util.actions as actions
+from util.actions import Actions
 from util.structure import *
 import sys
 from database.dbsqlite import *
@@ -119,7 +119,7 @@ class ExecuteAlivescan:
                     print('Scan de rede já efetuado na data corrente...')
 
                 else:
-                    actions.full_inventory(self.devices, self.terminal)
+                    Actions(self.devices, self.terminal)
                     self.manager_data()
     
 

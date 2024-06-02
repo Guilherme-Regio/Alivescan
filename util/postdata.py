@@ -7,7 +7,7 @@ filterwarnings('ignore', category=InsecureRequestWarning)
 class PostData:
     def __init__(self, ip, data):
         data['alivescan'] = True 
-        self.endpoint_url = f'https://api_url/{ip}/update'
+        self.endpoint_url = "" # URL API ENDPOINT
         self.data = data
         self.headers = {'Content-Type': 'application/json'}
         self.send_update()

@@ -1,8 +1,8 @@
-from requests import post
 from urllib3.exceptions import InsecureRequestWarning
+from subprocess import run, CalledProcessError
 from warnings import filterwarnings
 from fileinput import FileInput
-from subprocess import run, CalledProcessError
+from requests import post
 
 filterwarnings('ignore', category=InsecureRequestWarning)
 
@@ -12,7 +12,7 @@ class GetData:
         self.ip = ip
         self.timer_path = '/etc/systemd/system/alivescan.timer'
         self.service_path = '/etc/systemd/system/alivescan.service'
-        self.api_url = f'https://api_url/{self.ip}'
+        self.api_url = "" # URL API ENDPOINT
         self.timer_info = self.get_timer_info()
         self.execute_updates()
 
@@ -32,7 +32,7 @@ class GetData:
             with FileInput(self.timer_path, inplace=True) as file:
                 for line in file:
                     if line.startswith('OnCalendar='):
-                        print(f'OnCalendar={new_time}')  # Substitui a linha antiga pela nova
+                        print(f'OnCalendar={new_time}')
                     else:
                         print(line, end='')
         else:
@@ -44,7 +44,7 @@ class GetData:
         rotinas = response.json().get('Rotinas', [])
         for rotina in rotinas:
             if rotina.get('nome') == 'alivescan':
-                self.rotina.append(rotina)  # Retorna uma lista com apenas a rotina desejada
+                self.rotina.append(rotina)
     
 
     def get_macvendor(self):
@@ -53,6 +53,7 @@ class GetData:
         mac_vendor_dict = {device['MAC']: device['VENDOR'] for device in devices}
         return mac_vendor_dict
 
+
     def get_ipvendor(self):
         response = post(self.api_url, verify=False)
         devices = response.json().get('Ipvendor', [])
@@ -60,13 +61,11 @@ class GetData:
         return ip_vendor_dict
 
 
-
     def update_service_file(self, new_argument):
         try:
             with FileInput(self.service_path, inplace=True) as file:
                 for line in file:
                     if line.strip().startswith('ExecStart='):
-                        # Substitui a linha por uma nova com o novo argumento
                         line = f'ExecStart=/var/scripts_rd/rotinas/alivescan {new_argument}\n'
                     print(line, end='')
         except Exception as e:
@@ -94,4 +93,3 @@ class GetData:
     def get_last_scan(self):
         last_scan = self.rotina[0]['data_execucao']
         return last_scan
-    

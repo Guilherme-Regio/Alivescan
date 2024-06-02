@@ -1,4 +1,3 @@
-import json
 from database.dbsqlite import db_select_values
 
 class CollectData:
